@@ -1,0 +1,64 @@
+{
+  "id": "triggerware",
+  "name": "Triggerware",
+  "description": "Create local Triggerware triggers and route trigger deltas back into OpenClaw.",
+  "version": "0.1.0",
+  "activation": {
+    "onStartup": true
+  },
+  "contracts": {
+    "tools": [
+      "triggerware_start_monitor",
+      "triggerware_delete_monitor"
+    ]
+  },
+  "skills": [
+    "./skills"
+  ],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "triggerwareAddress": {
+        "type": "string",
+        "default": "localhost:5221"
+      },
+      "receiverHost": {
+        "type": "string",
+        "default": "0.0.0.0"
+      },
+      "receiverPort": {
+        "type": "number",
+        "default": 8787
+      },
+      "publicWebhookUrl": {
+        "type": "string",
+        "description": "URL local Triggerware should call, for example http://127.0.0.1:8787/triggerware."
+      },
+      "openclawCommand": {
+        "type": "string",
+        "default": "openclaw"
+      },
+      "agentId": {
+        "type": "string",
+        "default": "main"
+      },
+      "sessionId": {
+        "type": "string"
+      },
+      "to": {
+        "type": "string"
+      },
+      "deliver": {
+        "type": "boolean",
+        "default": false
+      },
+      "replyChannel": {
+        "type": "string"
+      },
+      "replyTo": {
+        "type": "string"
+      }
+    }
+  }
+}
