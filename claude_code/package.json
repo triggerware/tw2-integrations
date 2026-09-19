@@ -1,0 +1,11 @@
+{
+  "name": "@triggerware/claude-code",
+  "version": "0.1.0",
+  "description": "Triggerware MCP server for Claude Code",
+  "type": "module",
+  "files": [
+    ".claude-plugin",
+    ".mcp.json",
+    "bin"
+  ]
+}

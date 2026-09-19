@@ -1,0 +1,83 @@
+#!/usr/bin/env python3
+import argparse, json, os, subprocess, sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+PACKAGES = [
+    ("claude_code", ROOT / "claude_code" / "package.json", ROOT / "claude_code"),
+    ("codex", ROOT / "codex" / "package.json", ROOT / "codex"),
+    ("hermes", ROOT / "hermes" / "package.json", ROOT / "hermes"),
+    ("openclaw", ROOT / "openclaw" / "package.json", ROOT / "openclaw"),
+]
+
+def sh(*args, check=True, **kwargs):
+    kwargs.setdefault("cwd", ROOT)
+    return subprocess.run(args, text=True, check=check, **kwargs)
+
+def out(*args):
+    return sh(*args, stdout=subprocess.PIPE).stdout.strip()
+
+def version(manifest):
+    return json.loads(manifest.read_text())["version"]
+
+def secret(name):
+    return out(
+        "aws", "secretsmanager", "get-secret-value",
+        "--region", "us-east-2",
+        "--secret-id", name,
+        "--query", "SecretString",
+        "--output", "text",
+    )
+
+def changed_since(tag, package_root):
+    if tag is None:
+        return True
+    rel_package_root = str(package_root.relative_to(ROOT))
+    rel_deploy = str((package_root / "deploy").relative_to(ROOT))
+    return sh(
+        "git", "diff", "--quiet", f"{tag}..HEAD",
+        "--", rel_package_root, f":(exclude){rel_deploy}",
+        check=False,
+    ).returncode != 0
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--first", action="store_true")
+parser.add_argument("message")
+args = parser.parse_args()
+
+if out("git", "branch", "--show-current") != "main":
+    raise SystemExit("deploy/release: must run from main")
+
+sh("git", "add", ".")
+if out("git", "status", "--porcelain"):
+    sh("git", "commit", "-m", args.message)
+    sh("git", "push", "origin", "main")
+else:
+    print("No source changes to commit")
+
+for name, manifest, package_root in PACKAGES:
+    tag = (out("git", "tag", "--list", f"{name}/v*", "--sort=-v:refname").splitlines() or [None])[0]
+    if not changed_since(tag, package_root):
+        print(f"Skipping {name}: no changes since {tag}")
+        continue
+
+    old = version(manifest)
+    cmd = [sys.executable, str(package_root / "deploy" / "release")]
+    if args.first or tag is None:
+        cmd.append("--first")
+
+    env = os.environ.copy()
+    env["NODE_AUTH_TOKEN"] = secret("package-manager-tokens/npm")
+    print(f"Publishing {name} from {tag or 'no previous tag'}")
+    released = sh(*cmd, cwd=package_root, env=env, check=False)
+    if released.returncode:
+        raise SystemExit(f"{name} release stopped. Resolve the message above and run it again.")
+
+    new = version(manifest)
+    if sh("git", "diff", "--quiet", "--", str(manifest.relative_to(ROOT)), check=False).returncode:
+        sh("git", "add", str(package_root.relative_to(ROOT)))
+        sh("git", "commit", "-m", f"Release {name} v{new}")
+    sh("git", "tag", f"{name}/v{new}")
+    print(f"Published {name} {old} -> {new}")
+
+sh("git", "push", "origin", "main", "--tags")

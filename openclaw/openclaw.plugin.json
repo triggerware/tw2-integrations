@@ -1,0 +1,20 @@
+{
+  "id": "triggerware",
+  "name": "Triggerware",
+  "description": "Triggerware MCP server",
+  "version": "0.1.0",
+  "activation": {
+    "onStartup": true
+  },
+  "mcpServers": {
+    "triggerware": {
+      "transport": "stdio",
+      "command": "node",
+      "args": ["./bin/triggerware-mcp.js", "mcp"]
+    }
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false
+  }
+}

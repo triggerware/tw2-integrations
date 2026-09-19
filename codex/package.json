@@ -1,0 +1,11 @@
+{
+  "name": "@triggerware/codex",
+  "version": "0.1.0",
+  "description": "Triggerware MCP server for Codex",
+  "type": "module",
+  "files": [
+    ".codex-plugin",
+    ".mcp.json",
+    "bin"
+  ]
+}

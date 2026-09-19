@@ -1,0 +1,20 @@
+{
+  "name": "triggerware",
+  "interface": {
+    "displayName": "Triggerware"
+  },
+  "plugins": [
+    {
+      "name": "triggerware",
+      "source": {
+        "source": "npm",
+        "package": "@triggerware/codex"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

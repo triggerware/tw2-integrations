@@ -1,0 +1,16 @@
+{
+  "name": "triggerware",
+  "owner": {
+    "name": "Triggerware"
+  },
+  "plugins": [
+    {
+      "name": "triggerware",
+      "source": {
+        "source": "npm",
+        "package": "@triggerware/claude-code"
+      },
+      "description": "Query and automate external systems with Triggerware"
+    }
+  ]
+}

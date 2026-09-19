@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "triggerware": {
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/bin/triggerware-mcp.js", "mcp"]
+    }
+  }
+}

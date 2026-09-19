@@ -1,5 +1,9 @@
 # Dependencies
 node_modules/
+*/bin/native/
+.venv/
+__pycache__/
+*.pyc
 
 # Logs
 *.log

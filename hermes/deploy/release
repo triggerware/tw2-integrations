@@ -1,0 +1,101 @@
+#!/usr/bin/env python3
+import argparse, hashlib, json, os, shutil, subprocess, tempfile
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+MANIFEST = ROOT / "package.json"
+BUCKET = os.environ.get("TW2_RELEASES_BUCKET", "tw2-releases")
+REGION = os.environ.get("AWS_REGION", "us-east-2")
+
+def sh(*args, **kwargs):
+    kwargs.setdefault("cwd", ROOT)
+    return subprocess.run(args, text=True, check=True, **kwargs)
+
+def out(*args):
+    return sh(*args, stdout=subprocess.PIPE).stdout.strip()
+
+def read_manifest():
+    return json.loads(MANIFEST.read_text())
+
+def bump(version):
+    major, minor, patch = map(int, version.split("."))
+    return f"{major}.{minor}.{patch + 1}"
+
+def write_json(path, data):
+    path.write_text(json.dumps(data, indent=2) + "\n")
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--first", action="store_true")
+args = parser.parse_args()
+
+package = read_manifest()
+old = package["version"]
+new = old if args.first else bump(old)
+package["version"] = new
+write_json(MANIFEST, package)
+
+plugin_manifests = list(ROOT.glob(".*-plugin/plugin.json")) + list(ROOT.glob("*.plugin.json"))
+for plugin_manifest in plugin_manifests:
+    plugin = json.loads(plugin_manifest.read_text())
+    plugin["version"] = new
+    write_json(plugin_manifest, plugin)
+
+pointers = {
+    name: out(
+        "aws", "s3", "cp", f"s3://{BUCKET}/cli/{name}", "-",
+        "--region", REGION,
+    )
+    for name in ["latest-mac.txt", "latest-windows.txt"]
+}
+version_dirs = {str(Path(pointer).parent) for pointer in pointers.values()}
+if len(version_dirs) != 1:
+    raise SystemExit("CLI macOS and Windows artifacts must come from the same version")
+
+targets = {
+    "tw2-cli-macos-aarch64": ("darwin-arm64", "triggerware"),
+    "tw2-cli-macos-x86_64": ("darwin-x64", "triggerware"),
+    "tw2-cli-windows-x86_64.exe": ("win32-x64", "triggerware.exe"),
+}
+native = ROOT / "bin" / "native"
+shutil.rmtree(native, ignore_errors=True)
+native.mkdir(parents=True)
+
+with tempfile.TemporaryDirectory() as tmp:
+    tmp = Path(tmp)
+    checksum_key = f"{next(iter(version_dirs))}/checksums.txt"
+    checksum_file = tmp / "checksums.txt"
+    sh(
+        "aws", "s3", "cp", f"s3://{BUCKET}/{checksum_key}", str(checksum_file),
+        "--region", REGION,
+    )
+    checksums = {
+        line.split()[1]: line.split()[0]
+        for line in checksum_file.read_text().splitlines()
+        if line.strip()
+    }
+
+    for artifact_key in pointers.values():
+        artifact_name = Path(artifact_key).name
+        if artifact_name not in targets:
+            raise SystemExit(f"Unsupported CLI artifact: {artifact_name}")
+        platform, executable = targets[artifact_name]
+        destination = native / platform / executable
+        destination.parent.mkdir(parents=True)
+        sh(
+            "aws", "s3", "cp", f"s3://{BUCKET}/{artifact_key}", str(destination),
+            "--region", REGION,
+        )
+        if hashlib.sha256(destination.read_bytes()).hexdigest() != checksums.get(artifact_name):
+            raise SystemExit(f"Checksum mismatch for {artifact_name}")
+        if destination.suffix != ".exe":
+            destination.chmod(0o755)
+
+env = os.environ.copy()
+with tempfile.TemporaryDirectory() as tmp:
+    if "NODE_AUTH_TOKEN" in env:
+        npmrc = Path(tmp) / ".npmrc"
+        npmrc.write_text("//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}\n")
+        env.setdefault("NPM_CONFIG_USERCONFIG", str(npmrc))
+    subprocess.run(["npm", "publish", "--access", "public"], cwd=ROOT, env=env, check=True)
+
+print(f"Published {package['name']} {old} -> {new}")

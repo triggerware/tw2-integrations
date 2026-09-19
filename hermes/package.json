@@ -1,0 +1,12 @@
+{
+  "name": "@triggerware/hermes",
+  "version": "0.1.0",
+  "description": "Triggerware MCP server for Hermes Agent",
+  "type": "module",
+  "bin": {
+    "triggerware-mcp": "bin/triggerware-mcp.js"
+  },
+  "files": [
+    "bin"
+  ]
+}

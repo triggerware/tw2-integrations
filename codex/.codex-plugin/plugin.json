@@ -1,0 +1,17 @@
+{
+  "name": "triggerware",
+  "version": "0.1.0",
+  "description": "Triggerware MCP server",
+  "author": {
+    "name": "Triggerware"
+  },
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Triggerware",
+    "shortDescription": "Query external systems with Triggerware",
+    "longDescription": "Use the Triggerware MCP server to query and automate external systems.",
+    "developerName": "Triggerware",
+    "category": "Developer Tools",
+    "capabilities": ["Interactive", "Write"]
+  }
+}

@@ -1,0 +1,26 @@
+# Nous-approved MCP catalog entry candidate.
+# This file must be submitted as optional-mcps/triggerware/manifest.yaml in
+# NousResearch/hermes-agent before `hermes mcp install triggerware` can use it.
+manifest_version: 1
+
+name: triggerware
+description: Query and automate external systems with Triggerware.
+source: https://github.com/triggerware/tw2-integrations
+
+transport:
+  type: stdio
+  command: npx
+  args:
+    - -y
+    - "@triggerware/hermes"
+    - mcp
+
+auth:
+  type: none
+
+post_install: |
+  Start a new Hermes session to load the Triggerware tools.
+
+  Triggerware supports both local and cloud-hosted instances. Use its `status`
+  tool to inspect the current connection, `start` for a local instance, or
+  `login` for a cloud-hosted instance.
