@@ -9,7 +9,9 @@
     "openclaw.plugin.json"
   ],
   "openclaw": {
-    "extensions": ["./index.js"]
+    "extensions": [
+      "./index.js"
+    ]
   },
   "peerDependencies": {
     "openclaw": ">=2026.3.24-beta.2"

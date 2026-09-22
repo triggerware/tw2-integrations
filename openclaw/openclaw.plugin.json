@@ -10,7 +10,10 @@
     "triggerware": {
       "transport": "stdio",
       "command": "node",
-      "args": ["./bin/triggerware-mcp.js", "mcp"]
+      "args": [
+        "./bin/triggerware-mcp.js",
+        "mcp"
+      ]
     }
   },
   "configSchema": {
