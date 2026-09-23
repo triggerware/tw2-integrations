@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+marketplace=$(cd "$(dirname "$0")" && pwd)
+workspace=$(dirname "$marketplace")
+cd "$workspace"
+
+run_codex() {
+  local bundled_cli
+  if command -v codex >/dev/null 2>&1; then
+    command codex "$@"
+    return
+  fi
+  for bundled_cli in \
+    /Applications/ChatGPT.app/Contents/Resources/codex \
+    /Applications/Codex.app/Contents/Resources/codex \
+    "$HOME/Applications/ChatGPT.app/Contents/Resources/codex" \
+    "$HOME/Applications/Codex.app/Contents/Resources/codex"; do
+    if [ -x "$bundled_cli" ]; then
+      "$bundled_cli" "$@"
+      return
+    fi
+  done
+  echo "Codex CLI not found on PATH or in the ChatGPT/Codex app bundles. Install the app in /Applications and retry." >&2
+  return 127
+}
+
+case "${1:-} ${2:-}" in
+  "codex install")
+    run_codex plugin marketplace add "$marketplace"
+    run_codex plugin add triggerware@triggerware
+    ;;
+  "codex uninstall")
+    run_codex plugin remove triggerware@triggerware
+    run_codex plugin marketplace remove triggerware
+    ;;
+  "claude install")
+    claude plugin marketplace add "$marketplace"
+    claude plugin install triggerware@triggerware
+    ;;
+  "claude uninstall")
+    claude plugin uninstall triggerware@triggerware
+    claude plugin marketplace remove triggerware
+    ;;
+  "hermes install")
+    hermes mcp add triggerware --command npx --args -y @triggerware/hermes@latest mcp
+    ;;
+  "hermes uninstall")
+    hermes mcp remove triggerware
+    ;;
+  "openclaw install")
+    openclaw plugins install @triggerware/openclaw@latest
+    ;;
+  "openclaw uninstall")
+    openclaw plugins uninstall triggerware
+    ;;
+  *)
+    echo "Usage: $0 {codex|claude|hermes|openclaw} {install|uninstall}" >&2
+    exit 2
+    ;;
+esac

@@ -1,8 +1,6 @@
 {
   "name": "triggerware",
-  "owner": {
-    "name": "Triggerware"
-  },
+  "owner": { "name": "Triggerware" },
   "plugins": [
     {
       "name": "triggerware",
@@ -10,7 +8,7 @@
         "source": "npm",
         "package": "@triggerware/claude-code"
       },
-      "description": "Query and automate external systems with Triggerware"
+      "description": "Triggerware MCP server"
     }
   ]
 }

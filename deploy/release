@@ -3,11 +3,12 @@ import argparse, json, os, subprocess, sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+INTEGRATIONS = ROOT / "integrations"
 PACKAGES = [
-    ("claude_code", ROOT / "claude_code" / "package.json", ROOT / "claude_code"),
-    ("codex", ROOT / "codex" / "package.json", ROOT / "codex"),
-    ("hermes", ROOT / "hermes" / "package.json", ROOT / "hermes"),
-    ("openclaw", ROOT / "openclaw" / "package.json", ROOT / "openclaw"),
+    ("claude_code", INTEGRATIONS / "claude_code" / "package.json", INTEGRATIONS / "claude_code"),
+    ("codex", INTEGRATIONS / "codex" / "package.json", INTEGRATIONS / "codex"),
+    ("hermes", INTEGRATIONS / "hermes" / "package.json", INTEGRATIONS / "hermes"),
+    ("openclaw", INTEGRATIONS / "openclaw" / "package.json", INTEGRATIONS / "openclaw"),
 ]
 
 def sh(*args, check=True, **kwargs):
