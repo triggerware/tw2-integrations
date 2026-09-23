@@ -2,7 +2,7 @@
   "id": "triggerware",
   "name": "Triggerware",
   "description": "Triggerware MCP server",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "activation": {
     "onStartup": true
   },
