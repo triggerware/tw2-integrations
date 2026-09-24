@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+testing=$(cd "$(dirname "$0")" && pwd)
+workspace=$(dirname "$testing")
+marketplace="$(dirname "$workspace")/aws-test/tw2-releases/integrations"
+source "$testing/common.sh"
+cd "$workspace"
+
+if [ "$#" -ne 2 ]; then
+  echo "Usage: $0 {codex|claude|hermes|openclaw} {install|uninstall}" >&2
+  exit 2
+fi
+case "$1" in
+  codex|hermes|openclaw) package="$1" ;;
+  claude) package=claude_code ;;
+  *) echo "Unknown client: $1" >&2; exit 2 ;;
+esac
+case "$2" in
+  install)
+    if [ ! -f "$marketplace/$package/package.json" ] || [ ! -d "$marketplace/$package/bin/native" ]; then
+      echo "Local integration artifacts missing. Run $workspace/deploy/dev first." >&2
+      exit 1
+    fi
+    ;;
+  uninstall) ;;
+  *) echo "Unknown action: $2" >&2; exit 2 ;;
+esac
+
+case "$1 $2" in
+  "codex install")
+    run_codex plugin marketplace add "$marketplace"
+    installed=$(run_codex plugin list --marketplace triggerware-dev --json | python3 -c '
+import json, sys
+data = json.load(sys.stdin)
+print("yes" if any(p["pluginId"] == "triggerware@triggerware-dev" and p.get("installed") for p in data["installed"]) else "no")
+')
+    if [ "$installed" = yes ]; then
+      run_codex plugin remove triggerware@triggerware-dev
+    fi
+    run_codex plugin add triggerware@triggerware-dev
+    ;;
+  "codex uninstall")
+    run_codex plugin remove triggerware@triggerware-dev
+    run_codex plugin marketplace remove triggerware-dev
+    ;;
+  "claude install")
+    claude plugin marketplace add "$marketplace"
+    claude plugin install triggerware@triggerware-dev
+    ;;
+  "claude uninstall")
+    claude plugin uninstall triggerware@triggerware-dev
+    claude plugin marketplace remove triggerware-dev
+    ;;
+  "hermes install")
+    hermes mcp add triggerware --command node --args "$marketplace/hermes/bin/triggerware-mcp.js" mcp
+    ;;
+  "hermes uninstall")
+    hermes mcp remove triggerware
+    ;;
+  "openclaw install")
+    openclaw plugins install "$marketplace/openclaw" --force
+    ;;
+  "openclaw uninstall")
+    openclaw plugins uninstall triggerware
+    ;;
+esac

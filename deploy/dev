@@ -1,0 +1,111 @@
+#!/usr/bin/env python3
+import hashlib
+import json
+import shutil
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+RELEASES = ROOT.parent / "aws-test" / "tw2-releases"
+DESTINATION = RELEASES / "integrations"
+PACKAGES = ("claude_code", "codex", "hermes", "openclaw")
+TARGETS = {
+    "tw2-cli-macos-aarch64": ("darwin-arm64", "triggerware"),
+    "tw2-cli-macos-x86_64": ("darwin-x64", "triggerware"),
+    "tw2-cli-windows-x86_64.exe": ("win32-x64", "triggerware.exe"),
+}
+
+
+def write_json(path, value):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(value, indent=2) + "\n")
+
+
+cli_root = ROOT.parent / "tw2-cli"
+subprocess.run([sys.executable, str(cli_root / "deploy" / "dev")], cwd=cli_root, check=True)
+
+# Read the same pointers and checksums as release, from the local dev bucket.
+artifacts = []
+for name in ("latest-mac.txt", "latest-windows.txt"):
+    pointer = RELEASES / "cli" / name
+    if not pointer.is_file():
+        raise SystemExit(f"Missing {pointer}. Run tw2-cli/deploy/dev first.")
+    artifact = (RELEASES / pointer.read_text().strip()).resolve()
+    if RELEASES.resolve() not in artifact.parents or artifact.name not in TARGETS:
+        raise SystemExit(f"Invalid CLI artifact in {pointer}: {artifact}")
+    if not artifact.is_file():
+        raise SystemExit(f"Missing {artifact}. Run tw2-cli/deploy/dev first.")
+    artifacts.append(artifact)
+
+if len({artifact.parent for artifact in artifacts}) != 1:
+    raise SystemExit("CLI macOS and Windows artifacts must come from the same version")
+checksum_file = artifacts[0].parent / "checksums.txt"
+if not checksum_file.is_file():
+    raise SystemExit(f"Missing {checksum_file}. Run tw2-cli/deploy/dev first.")
+checksums = {
+    line.split()[1]: line.split()[0]
+    for line in checksum_file.read_text().splitlines() if line.strip()
+}
+for artifact in artifacts:
+    if hashlib.sha256(artifact.read_bytes()).hexdigest() != checksums.get(artifact.name):
+        raise SystemExit(f"Checksum mismatch for {artifact}")
+
+# Prepare everything before replacing the previous staged packages.
+with tempfile.TemporaryDirectory(prefix="integrations-", dir=RELEASES) as temporary:
+    staged = Path(temporary)
+    for name in PACKAGES:
+        source = ROOT / "integrations" / name
+        package = staged / name
+        package.mkdir()
+        manifest = json.loads((source / "package.json").read_text())
+        paths = ["package.json", *manifest["files"]]
+        if (source / "README.md").is_file():
+            paths.append("README.md")
+        for relative in paths:
+            origin = source / relative
+            target = package / relative
+            if origin.is_dir():
+                shutil.copytree(origin, target, ignore=shutil.ignore_patterns("native", "node_modules", "__pycache__"))
+            else:
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(origin, target)
+        for artifact in artifacts:
+            platform, executable = TARGETS[artifact.name]
+            target = package / "bin" / "native" / platform / executable
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(artifact, target)
+            if target.suffix != ".exe":
+                target.chmod(0o755)
+
+    write_json(staged / ".agents/plugins/marketplace.json", {
+        "name": "triggerware-dev",
+        "interface": {"displayName": "Triggerware Dev"},
+        "plugins": [{
+            "name": "triggerware",
+            "source": {"source": "local", "path": "./codex"},
+            "policy": {"installation": "AVAILABLE", "authentication": "ON_INSTALL"},
+            "category": "Developer Tools",
+        }],
+    })
+    write_json(staged / ".claude-plugin/marketplace.json", {
+        "name": "triggerware-dev",
+        "owner": {"name": "Triggerware"},
+        "plugins": [{
+            "name": "triggerware",
+            "source": "./claude_code",
+            "description": "Local Triggerware MCP server",
+        }],
+    })
+    DESTINATION.mkdir(parents=True, exist_ok=True)
+    for name in (*PACKAGES, ".agents", ".claude-plugin"):
+        destination = DESTINATION / name
+        if destination.is_symlink():
+            raise SystemExit(f"Refusing to replace symlink: {destination}")
+        if destination.exists():
+            shutil.rmtree(destination)
+        shutil.move(str(staged / name), str(destination))
+
+print(f"Staged integrations in {DESTINATION}")
+print("Install with ./testing/dev <codex|claude|hermes|openclaw> install")
