@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import argparse
 import hashlib
 import json
 import shutil
@@ -6,6 +7,10 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--fresh", action="store_true", help="Install core and CLI from local dev artifacts")
+args = parser.parse_args()
 
 ROOT = Path(__file__).resolve().parents[1]
 RELEASES = ROOT.parent / "aws-test" / "tw2-releases"
@@ -106,6 +111,13 @@ with tempfile.TemporaryDirectory(prefix="integrations-", dir=RELEASES) as tempor
         if destination.exists():
             shutil.rmtree(destination)
         shutil.move(str(staged / name), str(destination))
+
+if args.fresh:
+    for repo in ("tw2-core", "tw2-cli"):
+        subprocess.run(
+            ["sh", ROOT.parent / repo / "scripts/install.sh", "--path", RELEASES],
+            check=True,
+        )
 
 print(f"Staged integrations in {DESTINATION}")
 print("Install with ./testing/dev <codex|claude|hermes|openclaw> install")
