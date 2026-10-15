@@ -5,8 +5,10 @@ run_codex() {
     return
   fi
   for bundled_cli in \
+    /Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex \
     /Applications/ChatGPT.app/Contents/Resources/codex \
     /Applications/Codex.app/Contents/Resources/codex \
+    "$HOME/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex" \
     "$HOME/Applications/ChatGPT.app/Contents/Resources/codex" \
     "$HOME/Applications/Codex.app/Contents/Resources/codex"; do
     if [ -x "$bundled_cli" ]; then
