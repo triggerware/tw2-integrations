@@ -1,0 +1,22 @@
+{
+  "name": "triggerware",
+  "interface": {
+    "displayName": "Triggerware"
+  },
+  "plugins": [
+    {
+      "name": "triggerware",
+      "source": {
+        "source": "npm",
+        "package": "@triggerware/codex",
+        "version": "latest",
+        "registry": "https://registry.npmjs.org"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

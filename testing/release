@@ -1,14 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-marketplace=$(cd "$(dirname "$0")" && pwd)
-workspace=$(dirname "$marketplace")
+testing=$(cd "$(dirname "$0")" && pwd)
+workspace=$(dirname "$testing")
+marketplace="$workspace"
 cd "$workspace"
 
-source "$marketplace/common.sh"
+source "$testing/common.sh"
 
 case "${1:-} ${2:-}" in
   "codex install")
+    run_codex plugin remove triggerware@triggerware 2>/dev/null || true
+    run_codex plugin marketplace remove triggerware 2>/dev/null || true
     run_codex plugin marketplace add "$marketplace"
     run_codex plugin add triggerware@triggerware
     ;;
