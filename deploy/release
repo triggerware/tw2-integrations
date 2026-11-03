@@ -4,6 +4,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 INTEGRATIONS = ROOT / "integrations"
+CLI_RELEASE = ROOT / ".cli-release"
+BUCKET = os.environ.get("TW2_RELEASES_BUCKET", "tw2-releases")
+REGION = os.environ.get("AWS_REGION", "us-east-2")
 PACKAGES = [
     ("claude_code", INTEGRATIONS / "claude_code" / "package.json", INTEGRATIONS / "claude_code"),
     ("codex", INTEGRATIONS / "codex" / "package.json", INTEGRATIONS / "codex"),
@@ -49,6 +52,22 @@ args = parser.parse_args()
 if out("git", "branch", "--show-current") != "main":
     raise SystemExit("deploy/release: must run from main")
 
+cli_pointers = [
+    out(
+        "aws", "s3", "cp", f"s3://{BUCKET}/cli/{name}", "-",
+        "--region", REGION,
+    )
+    for name in ("latest-mac.txt", "latest-windows.txt")
+]
+cli_versions = {str(Path(pointer).parent) for pointer in cli_pointers}
+if len(cli_versions) != 1:
+    raise SystemExit("CLI macOS and Windows artifacts must come from the same version")
+cli_release = next(iter(cli_versions))
+previous_cli_release = CLI_RELEASE.read_text().strip() if CLI_RELEASE.is_file() else None
+cli_changed = cli_release != previous_cli_release
+if cli_changed:
+    CLI_RELEASE.write_text(f"{cli_release}\n")
+
 sh("git", "add", ".")
 if out("git", "status", "--porcelain"):
     sh("git", "commit", "-m", args.message)
@@ -58,7 +77,7 @@ else:
 
 for name, manifest, package_root in PACKAGES:
     tag = (out("git", "tag", "--list", f"{name}/v*", "--sort=-v:refname").splitlines() or [None])[0]
-    if not changed_since(tag, package_root):
+    if not cli_changed and not changed_since(tag, package_root):
         print(f"Skipping {name}: no changes since {tag}")
         continue
 
