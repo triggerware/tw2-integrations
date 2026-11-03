@@ -9,7 +9,7 @@
       "source": {
         "source": "npm",
         "package": "@triggerware/codex",
-        "version": "latest",
+        "version": "0.1.2",
         "registry": "https://registry.npmjs.org"
       },
       "policy": {

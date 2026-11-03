@@ -94,6 +94,12 @@ for name, manifest, package_root in PACKAGES:
         raise SystemExit(f"{name} release stopped. Resolve the message above and run it again.")
 
     new = version(manifest)
+    if name == "codex":
+        marketplace = ROOT / ".agents" / "plugins" / "marketplace.json"
+        catalog = json.loads(marketplace.read_text())
+        catalog["plugins"][0]["source"]["version"] = new
+        marketplace.write_text(json.dumps(catalog, indent=2) + "\n")
+        sh("git", "add", str(marketplace.relative_to(ROOT)))
     if sh("git", "diff", "--quiet", "--", str(manifest.relative_to(ROOT)), check=False).returncode:
         sh("git", "add", str(package_root.relative_to(ROOT)))
         sh("git", "commit", "-m", f"Release {name} v{new}")
