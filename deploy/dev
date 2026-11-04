@@ -18,7 +18,6 @@ DESTINATION = RELEASES / "integrations"
 PACKAGES = ("claude_code", "codex", "hermes", "openclaw")
 TARGETS = {
     "tw2-cli-macos-aarch64": ("darwin-arm64", "triggerware"),
-    "tw2-cli-macos-x86_64": ("darwin-x64", "triggerware"),
     "tw2-cli-windows-x86_64.exe": ("win32-x64", "triggerware.exe"),
 }
 
