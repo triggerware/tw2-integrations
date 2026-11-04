@@ -9,7 +9,7 @@
       "source": {
         "source": "npm",
         "package": "@triggerware/claude-code",
-        "version": "0.1.3",
+        "version": "0.1.4",
         "registry": "https://registry.npmjs.org"
       },
       "description": "Triggerware MCP server"
